@@ -1,0 +1,50 @@
+{
+  "" : {
+    "const-values" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_find-master.swiftconstvalues",
+    "dependencies" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_find-master.d",
+    "diagnostics" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_find-master.dia",
+    "emit-module-dependencies" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_find-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_find-master-emit-module.dia",
+    "swift-dependencies" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_find-master.swiftdeps"
+  },
+  "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  },
+  "/Users/jackren/Documents/free-find/free_find/ContentView.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/jackren/Documents/free-find/free_find/Models/DonationItem.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonationItem.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonationItem.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonationItem.o"
+  },
+  "/Users/jackren/Documents/free-find/free_find/Models/DonationStore.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonationStore.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonationStore.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonationStore.o"
+  },
+  "/Users/jackren/Documents/free-find/free_find/Views/DiscoverView.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DiscoverView.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DiscoverView.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DiscoverView.o"
+  },
+  "/Users/jackren/Documents/free-find/free_find/Views/DonateView.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonateView.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonateView.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/DonateView.o"
+  },
+  "/Users/jackren/Documents/free-find/free_find/Views/MyDonationsView.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/MyDonationsView.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/MyDonationsView.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/MyDonationsView.o"
+  },
+  "/Users/jackren/Documents/free-find/free_find/free_findApp.swift" : {
+    "index-unit-output-path" : "/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_findApp.o",
+    "llvm-bc" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_findApp.bc",
+    "object" : "/Users/jackren/Documents/free-find/build/free_find.build/Release-iphoneos/free_find.build/Objects-normal/arm64/free_findApp.o"
+  }
+}

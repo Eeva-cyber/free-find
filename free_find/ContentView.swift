@@ -8,14 +8,29 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var donationStore = DonationStore()
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView {
+            DonateView()
+                .tabItem {
+                    Image(systemName: "plus.circle")
+                    Text("Donate")
+                }
+            
+            DiscoverView()
+                .tabItem {
+                    Image(systemName: "magnifyingglass")
+                    Text("Discover")
+                }
+            
+            MyDonationsView()
+                .tabItem {
+                    Image(systemName: "list.bullet")
+                    Text("My Items")
+                }
         }
-        .padding()
+        .environmentObject(donationStore)
     }
 }
 
