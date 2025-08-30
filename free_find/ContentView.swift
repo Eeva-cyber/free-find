@@ -10,9 +10,15 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         TabView {
+            HomeView()
+                .tabItem {
+                    Image(systemName: "house.fill")
+                    Text("Home")
+                }
+            
             DonateView()
                 .tabItem {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "plus.square")
                     Text("Donate")
                 }
             
@@ -24,16 +30,17 @@ struct ContentView: View {
             
             MyDonationsView()
                 .tabItem {
-                    Image(systemName: "list.bullet")
-                    Text("My Items")
+                    Image(systemName: "bell")
+                    Text("Notifications")
                 }
             
             BackendTestView()
                 .tabItem {
                     Image(systemName: "gear")
-                    Text("Test")
+                    Text("Settings")
                 }
         }
+        .accentColor(Color(red: 0.18, green: 0.49, blue: 0.20)) // #2E7D32 - primary green
     }
 }
 

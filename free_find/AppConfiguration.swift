@@ -20,9 +20,13 @@ struct AppConfiguration {
     
     // App colors
     struct Colors {
-        static let primary = "6B3C13" // #6B3C13
-        static let background = "FAF5EF" // #FAF5EF
+        static let primary = "6B3C13" // #6B3C13 - brown for loading/welcome
+        static let primaryGreen = "2E7D32" // #2E7D32 - green for home page
+        static let background = "FAF5EF" // #FAF5EF - cream for loading/welcome
+        static let homeBackground = "F9F9F5" // #F9F9F5 - light green-gray for home
         static let secondary = "8B5A32"
+        static let darkText = "1F1F1F" // #1F1F1F - main text color
+        static let lightBackground = "E8F5E9" // #E8F5E9 - light green backgrounds
     }
     
     // UserDefaults keys
