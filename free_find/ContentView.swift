@@ -29,6 +29,12 @@ struct ContentView: View {
                     Image(systemName: "list.bullet")
                     Text("My Items")
                 }
+            
+            BackendTestView()
+                .tabItem {
+                    Image(systemName: "gear")
+                    Text("Test")
+                }
         }
         .environmentObject(donationStore)
     }
