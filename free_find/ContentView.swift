@@ -28,9 +28,9 @@ struct ContentView: View {
                     Text("Discover")
                 }
             
-            MyDonationsView()
+            NotificationsView()
                 .tabItem {
-                    Image(systemName: "bell")
+                    Image(systemName: "bell.fill")
                     Text("Notifications")
                 }
             
