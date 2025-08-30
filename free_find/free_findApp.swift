@@ -11,7 +11,7 @@ import SwiftUI
 struct free_findApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainAppView()
         }
     }
 }

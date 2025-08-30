@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var donationStore = DonationStore()
-    
     var body: some View {
         TabView {
             DonateView()
@@ -36,7 +34,6 @@ struct ContentView: View {
                     Text("Test")
                 }
         }
-        .environmentObject(donationStore)
     }
 }
 
