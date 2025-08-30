@@ -30,135 +30,54 @@ struct DonateView: View {
     @State private var aiSuggestionApplied = false
     @State private var debugMessage = ""
     
+    // Colors matching modern design
+    private let backgroundColor = Color(red: 0.976, green: 0.969, blue: 0.961) // #F9F7F5
+    private let cardBackground = Color.white
+    private let primaryGreen = Color(red: 0.18, green: 0.49, blue: 0.20) // #2E7D32
+    private let textPrimary = Color(red: 0.15, green: 0.23, blue: 0.31) // slate-800
+    private let textSecondary = Color(red: 0.374, green: 0.4, blue: 0.424) // gray-600
+    private let inputBackground = Color(red: 0.96, green: 0.96, blue: 0.94) // #f5f5f0
+    
     var body: some View {
-        NavigationView {
-            Form {
-                Section("Item Details") {
-                    TextField("Item Title", text: $title)
-                    TextField("Description", text: $description, axis: .vertical)
-                        .lineLimit(3...6)
+        VStack(spacing: 0) {
+            // Header
+            header
+            
+            // Main content
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    // Photo upload card
+                    photoUploadCard
                     
-                    Picker("Category", selection: $selectedCategory) {
-                        ForEach(ItemCategory.allCases, id: \.self) { category in
-                            Text(category.rawValue).tag(category)
-                        }
-                    }
+                    // Item details card
+                    itemDetailsCard
                     
-                    Picker("Condition", selection: $selectedCondition) {
-                        ForEach(ItemCondition.allCases, id: \.self) { condition in
-                            Text(condition.rawValue).tag(condition)
-                        }
-                    }
-                }
-                
-                Section("Photos") {
-                    PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 5, matching: .images) {
-                        HStack {
-                            Image(systemName: "camera")
-                            Text("Add Photos (\(selectedPhotos.count)/5)")
-                            
-                            if isAnalyzing {
-                                Spacer()
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            }
-                        }
-                    }
-                    .onChange(of: selectedPhotos) { oldPhotos, newPhotos in
-                        debugMessage = "Photos changed: \(newPhotos.count) photos selected"
-                        print("🔄 Photos changed: \(newPhotos.count) photos")
-                        Task {
-                            await loadImages(from: newPhotos)
-                        }
-                    }
+                    // Pickup information card
+                    pickupInfoCard
                     
-                    if !selectedPhotos.isEmpty {
-                        HStack {
-                            Text("\(selectedPhotos.count) photo(s) selected")
-                                .foregroundColor(.secondary)
-                            
-                            if aiSuggestionApplied {
-                                Spacer()
-                                HStack {
-                                    Image(systemName: "sparkles")
-                                        .foregroundColor(.blue)
-                                    Text("AI Enhanced")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                        }
-                    }
+                    // Contact information card
+                    contactInfoCard
                     
-                    if isAnalyzing {
-                        HStack {
-                            Image(systemName: "brain")
-                                .foregroundColor(.blue)
-                            Text("AI is analyzing your photo...")
-                                .foregroundColor(.blue)
-                                .font(.caption)
-                        }
-                    }
+                    // Submit button
+                    submitButton
                     
                     // Debug message
                     if !debugMessage.isEmpty {
-                        Text("Debug: \(debugMessage)")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    // Show AI analysis button if we have images but haven't analyzed
-                    if !loadedImages.isEmpty && !isAnalyzing && !aiSuggestionApplied {
-                        Button(action: {
-                            debugMessage = "Manual analysis triggered"
-                            print("🔄 Manual analysis button pressed")
-                            Task {
-                                await analyzeFirstImage()
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "sparkles")
-                                Text("Get AI Suggestions")
-                            }
-                        }
-                        .foregroundColor(.blue)
+                        Text(debugMessage)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 8)
                     }
                 }
-                
-                Section("Pickup Information") {
-                    TextField("Pickup Location", text: $location)
-                        .textContentType(.fullStreetAddress)
-                    
-                    DatePicker("Available From", 
-                             selection: $pickupStartDate, 
-                             in: Date()..., 
-                             displayedComponents: [.date, .hourAndMinute])
-                    
-                    DatePicker("Available Until", 
-                             selection: $pickupEndDate, 
-                             in: pickupStartDate..., 
-                             displayedComponents: [.date, .hourAndMinute])
-                }
-                
-                Section("Contact Information") {
-                    TextField("Your Name", text: $donorName)
-                        .textContentType(.name)
-                    
-                    TextField("Your Phone Number", text: $donorPhone)
-                        .textContentType(.telephoneNumber)
-                        .keyboardType(.phonePad)
-                }
-                
-                Section {
-                    Button("Post Donation") {
-                        postDonation()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .disabled(!isFormValid)
-                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 100) // Space for tab bar
             }
-            .navigationTitle("Donate Item")
+            .background(backgroundColor)
+            
+            Spacer()
         }
+        .background(backgroundColor)
         .alert("Success!", isPresented: $showingSuccessAlert) {
             Button("OK") {
                 clearForm()
@@ -171,8 +90,361 @@ struct DonateView: View {
         } message: {
             Text(analysisErrorMessage)
         }
+        .onChange(of: selectedPhotos) { oldPhotos, newPhotos in
+            debugMessage = "Photos changed: \(newPhotos.count) photos selected"
+            print("🔄 Photos changed: \(newPhotos.count) photos")
+            Task {
+                await loadImages(from: newPhotos)
+            }
+        }
     }
     
+    // MARK: - Header
+    private var header: some View {
+        VStack(spacing: 0) {
+            Text("Donate an Item")
+                .font(.system(size: 30, weight: .bold))
+                .foregroundColor(textPrimary)
+                .padding(.top, 32)
+                .padding(.bottom, 16)
+        }
+        .frame(maxWidth: .infinity)
+        .background(backgroundColor)
+    }
+    
+    // MARK: - Photo Upload Card
+    private var photoUploadCard: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Photos")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(textPrimary)
+                
+                // Photo upload area
+                VStack(spacing: 16) {
+                    if loadedImages.isEmpty {
+                        // Empty state
+                        VStack(spacing: 16) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 48, weight: .light))
+                                .foregroundColor(.gray.opacity(0.4))
+                            
+                            PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 5, matching: .images) {
+                                HStack {
+                                    Image(systemName: "camera")
+                                    Text("Add Photos (\(selectedPhotos.count)/5)")
+                                    
+                                    if isAnalyzing {
+                                        Spacer()
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                    }
+                                }
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(primaryGreen)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .stroke(primaryGreen, lineWidth: 2)
+                                )
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 120)
+                        .background(Color.gray.opacity(0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [8, 4]))
+                        )
+                    } else {
+                        // Show uploaded images
+                        VStack(alignment: .leading, spacing: 12) {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(Array(loadedImages.enumerated()), id: \.offset) { index, image in
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+                                    
+                                    // Add more photos button
+                                    if loadedImages.count < 5 {
+                                        PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 5, matching: .images) {
+                                            VStack {
+                                                Image(systemName: "plus")
+                                                    .font(.title2)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            .frame(width: 80, height: 80)
+                                            .background(Color.gray.opacity(0.1))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                                            )
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 4)
+                            }
+                            
+                            // AI status
+                            if aiSuggestionApplied {
+                                HStack {
+                                    Image(systemName: "sparkles")
+                                        .foregroundColor(primaryGreen)
+                                    Text("AI Enhanced")
+                                        .font(.caption)
+                                        .foregroundColor(primaryGreen)
+                                }
+                            } else if isAnalyzing {
+                                HStack {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                    Text("AI is analyzing your photo...")
+                                        .foregroundColor(primaryGreen)
+                                        .font(.caption)
+                                }
+                            } else if !loadedImages.isEmpty && !aiSuggestionApplied {
+                                Button(action: {
+                                    debugMessage = "Manual analysis triggered"
+                                    print("🔄 Manual analysis button pressed")
+                                    Task {
+                                        await analyzeFirstImage()
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "sparkles")
+                                        Text("Get AI Suggestions")
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(primaryGreen)
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Debug message
+                if !debugMessage.isEmpty {
+                    Text("Debug: \(debugMessage)")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(20)
+        }
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
+    }
+    
+    // MARK: - Item Details Card
+    private var itemDetailsCard: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Item Details")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(textPrimary)
+                
+                VStack(spacing: 16) {
+                    // Title field
+                    ModernTextField(
+                        title: "Item Title",
+                        text: $title,
+                        placeholder: "e.g., Vintage Armchair"
+                    )
+                    
+                    // Description field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Description")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(textSecondary)
+                        
+                        TextField("Describe your item...", text: $description, axis: .vertical)
+                            .lineLimit(3...6)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(inputBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    
+                    // Category picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Category")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(textSecondary)
+                        
+                        Picker("Category", selection: $selectedCategory) {
+                            ForEach(ItemCategory.allCases, id: \.self) { category in
+                                Text(category.rawValue).tag(category)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(inputBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    
+                    // Condition picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Condition")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(textSecondary)
+                        
+                        Picker("Condition", selection: $selectedCondition) {
+                            ForEach(ItemCondition.allCases, id: \.self) { condition in
+                                Text(condition.rawValue).tag(condition)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(inputBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+            .padding(20)
+        }
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
+    }
+    
+    // MARK: - Pickup Info Card
+    private var pickupInfoCard: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Pickup Information")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(textPrimary)
+                
+                VStack(spacing: 16) {
+                    // Location field
+                    ModernTextField(
+                        title: "Pickup Location",
+                        text: $location,
+                        placeholder: "Enter pickup address"
+                    )
+                    
+                    // Date pickers
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Available From")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(textSecondary)
+                        
+                        DatePicker("Available From", 
+                                 selection: $pickupStartDate, 
+                                 in: Date()..., 
+                                 displayedComponents: [.date, .hourAndMinute])
+                        .labelsHidden()
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(inputBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Available Until")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(textSecondary)
+                        
+                        DatePicker("Available Until", 
+                                 selection: $pickupEndDate, 
+                                 in: pickupStartDate..., 
+                                 displayedComponents: [.date, .hourAndMinute])
+                        .labelsHidden()
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(inputBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+            .padding(20)
+        }
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
+    }
+    
+    // MARK: - Contact Info Card
+    private var contactInfoCard: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Contact Information")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(textPrimary)
+                
+                VStack(spacing: 16) {
+                    ModernTextField(
+                        title: "Your Name",
+                        text: $donorName,
+                        placeholder: "Enter your name"
+                    )
+                    
+                    ModernTextField(
+                        title: "Phone Number",
+                        text: $donorPhone,
+                        placeholder: "Enter your phone number"
+                    )
+                }
+            }
+            .padding(20)
+        }
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
+    }
+    
+    // MARK: - Submit Button
+    private var submitButton: some View {
+        Button(action: {
+            postDonation()
+        }) {
+            Text("Post Donation")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(primaryGreen)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .disabled(!isFormValid)
+        .opacity(isFormValid ? 1.0 : 0.6)
+        .padding(.top, 8)
+    }
+    
+    // MARK: - Modern Text Field Component
+    private struct ModernTextField: View {
+        let title: String
+        @Binding var text: String
+        let placeholder: String
+        
+        private let textSecondary = Color(red: 0.374, green: 0.4, blue: 0.424) // gray-600
+        private let inputBackground = Color(red: 0.96, green: 0.96, blue: 0.94) // #f5f5f0
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(textSecondary)
+                
+                TextField(placeholder, text: $text)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(inputBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+    }
+    
+    // MARK: - Form Validation
     private var isFormValid: Bool {
         !title.isEmpty && 
         !description.isEmpty && 
@@ -182,6 +454,7 @@ struct DonateView: View {
         pickupEndDate > pickupStartDate
     }
     
+    // MARK: - Form Submission
     private func postDonation() {
         let donation = DonationItem(
             title: title,
@@ -199,6 +472,7 @@ struct DonateView: View {
         showingSuccessAlert = true
     }
     
+    // MARK: - Form Reset
     private func clearForm() {
         title = ""
         description = ""
@@ -214,8 +488,7 @@ struct DonateView: View {
         aiSuggestionApplied = false
     }
     
-    // MARK: - AI Analysis Functions
-    
+    // MARK: - Photo Loading
     private func loadImages(from items: [PhotosPickerItem]) async {
         print("🖼️ Loading \(items.count) images...")
         debugMessage = "Loading \(items.count) images..."
