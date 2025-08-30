@@ -33,10 +33,23 @@ def initialize_vertex_ai():
 # Initialize Vertex AI when app starts
 try:
     initialize_vertex_ai()
-    model = GenerativeModel("gemini-1.5-flash")
-    print("Vertex AI initialized successfully")
+    # Allow overriding the model name via env var; default to the requested newer model
+    model_name = os.getenv('GEMINI_MODEL_NAME', 'gemini-2.5-flash')
+    try:
+        model = GenerativeModel(model_name)
+        print(f"Vertex AI initialized successfully with model: {model_name}")
+    except Exception as model_err:
+        # Fallback to previous stable version if the requested model isn't available
+        fallback_model = 'gemini-1.5-flash'
+        print(f"Primary model '{model_name}' unavailable ({model_err}); attempting fallback '{fallback_model}'")
+        try:
+            model = GenerativeModel(fallback_model)
+            print(f"Fallback model '{fallback_model}' initialized successfully")
+        except Exception as fb_err:
+            print(f"Warning: Both primary and fallback model initialization failed: {fb_err}")
+            model = None
 except Exception as e:
-    print(f"Warning: Vertex AI initialization failed: {e}")
+    print(f"Warning: Vertex AI initialization failed before model selection: {e}")
     model = None
 
 @app.route('/health', methods=['GET'])
