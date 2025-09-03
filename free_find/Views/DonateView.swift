@@ -7,6 +7,8 @@
 
 import SwiftUI
 import PhotosUI
+import CoreLocation
+import MapKit
 
 struct DonateView: View {
     @EnvironmentObject var donationStore: DonationStore
@@ -30,6 +32,16 @@ struct DonateView: View {
     @State private var aiSuggestionApplied = false
     @State private var debugMessage = ""
     
+    // Location states
+    @State private var isLoadingLocation = false
+    @State private var userLocation: CLLocation?
+    @State private var locationManager = LocationManager()
+    @State private var mapRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), // Default to SF
+        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+    )
+    @State private var showingMap = false
+    
     // Colors matching modern design
     private let backgroundColor = Color(red: 0.976, green: 0.969, blue: 0.961) // #F9F7F5
     private let cardBackground = Color.white
@@ -37,6 +49,14 @@ struct DonateView: View {
     private let textPrimary = Color(red: 0.15, green: 0.23, blue: 0.31) // slate-800
     private let textSecondary = Color(red: 0.374, green: 0.4, blue: 0.424) // gray-600
     private let inputBackground = Color(red: 0.96, green: 0.96, blue: 0.94) // #f5f5f0
+    
+    // MARK: - Map Annotations
+    private var mapAnnotations: [MapAnnotation] {
+        if let userLocation = userLocation {
+            return [MapAnnotation(coordinate: userLocation.coordinate)]
+        }
+        return []
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -95,6 +115,13 @@ struct DonateView: View {
             print("🔄 Photos changed: \(newPhotos.count) photos")
             Task {
                 await loadImages(from: newPhotos)
+            }
+        }
+        .onChange(of: locationManager.location) { oldLocation, newLocation in
+            if let newLocation = newLocation {
+                Task {
+                    await convertLocationToAddress(newLocation)
+                }
             }
         }
     }
@@ -325,12 +352,77 @@ struct DonateView: View {
                     .foregroundColor(textPrimary)
                 
                 VStack(spacing: 16) {
-                    // Location field
-                    ModernTextField(
-                        title: "Pickup Location",
-                        text: $location,
-                        placeholder: "Enter pickup address"
-                    )
+                    // Location field with current location button
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Pickup Location")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(textSecondary)
+                        
+                        HStack(spacing: 12) {
+                            TextField("Enter pickup address", text: $location)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(inputBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            
+                            Button(action: {
+                                getCurrentLocation()
+                            }) {
+                                HStack(spacing: 6) {
+                                    if isLoadingLocation {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "location.fill")
+                                            .font(.system(size: 14))
+                                    }
+                                    Text(isLoadingLocation ? "Loading..." : "Current")
+                                        .font(.system(size: 12, weight: .medium))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(primaryGreen)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .disabled(isLoadingLocation)
+                            
+                            Button(action: {
+                                showingMap.toggle()
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: showingMap ? "eye.slash" : "map")
+                                        .font(.system(size: 14))
+                                    Text(showingMap ? "Hide" : "Map")
+                                        .font(.system(size: 12, weight: .medium))
+                                }
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.blue.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+                    
+                    // Map view with pin
+                    if showingMap && (!location.isEmpty || userLocation != nil) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Pickup Location on Map")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(textSecondary)
+                            
+                            Map(coordinateRegion: $mapRegion, annotationItems: mapAnnotations) { annotation in
+                                MapMarker(coordinate: annotation.coordinate, tint: .init(primaryGreen))
+                            }
+                            .frame(height: 200)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                            )
+                        }
+                    }
                     
                     // Date pickers
                     VStack(alignment: .leading, spacing: 8) {
@@ -472,6 +564,62 @@ struct DonateView: View {
         showingSuccessAlert = true
     }
     
+    // MARK: - Location Functions
+    private func getCurrentLocation() {
+        isLoadingLocation = true
+        debugMessage = "Getting current location..."
+        
+        locationManager.requestLocation()
+    }
+    
+    private func convertLocationToAddress(_ location: CLLocation) async {
+        let geocoder = CLGeocoder()
+        
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            if let placemark = placemarks.first {
+                await MainActor.run {
+                    // Create a readable address string
+                    var addressComponents: [String] = []
+                    
+                    if let streetNumber = placemark.subThoroughfare {
+                        addressComponents.append(streetNumber)
+                    }
+                    if let streetName = placemark.thoroughfare {
+                        addressComponents.append(streetName)
+                    }
+                    if let city = placemark.locality {
+                        addressComponents.append(city)
+                    }
+                    if let state = placemark.administrativeArea {
+                        addressComponents.append(state)
+                    }
+                    if let zipCode = placemark.postalCode {
+                        addressComponents.append(zipCode)
+                    }
+                    
+                    self.location = addressComponents.joined(separator: ", ")
+                    self.isLoadingLocation = false
+                    
+                    // Update map region to center on the new location
+                    self.mapRegion = MKCoordinateRegion(
+                        center: location.coordinate,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    )
+                    
+                    debugMessage = "Location updated: \(self.location)"
+                    print("📍 Location set to: \(self.location)")
+                }
+            }
+        } catch {
+            await MainActor.run {
+                isLoadingLocation = false
+                debugMessage = "Failed to get address: \(error.localizedDescription)"
+                print("❌ Geocoding error: \(error)")
+            }
+        }
+    }
+    
     // MARK: - Form Reset
     private func clearForm() {
         title = ""
@@ -583,6 +731,51 @@ struct DonateView: View {
                 isAnalyzing = false
                 debugMessage = "Analysis failed: \(error.localizedDescription)"
             }
+        }
+    }
+}
+
+// MARK: - Map Annotation
+struct MapAnnotation: Identifiable {
+    let id = UUID()
+    let coordinate: CLLocationCoordinate2D
+}
+
+// MARK: - Location Manager
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let locationManager = CLLocationManager()
+    @Published var location: CLLocation?
+    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+    }
+    
+    func requestLocation() {
+        guard authorizationStatus != .denied else { return }
+        
+        if authorizationStatus == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
+        } else if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+            locationManager.requestLocation()
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        self.location = location
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location error: \(error.localizedDescription)")
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        authorizationStatus = status
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            locationManager.requestLocation()
         }
     }
 }

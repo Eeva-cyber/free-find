@@ -10,8 +10,8 @@ import Foundation
 struct AppConfiguration {
     // Development flags
     static let isDevelopment = true
-    static let skipWelcomeScreen = false // Set to true during development if you want to skip the welcome
-    static let skipLoadingScreen = false // Set to true during development if you want to skip loading
+    static let skipWelcomeScreen = false // Set to false to always show welcome
+    static let skipLoadingScreen = false // Set to false to always show loading
     
     // Animation durations
     static let loadingDuration: TimeInterval = 3.0

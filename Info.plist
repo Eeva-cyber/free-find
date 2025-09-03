@@ -65,5 +65,7 @@
             </dict>
         </dict>
     </dict>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs access to your location to automatically fill in the pickup address when donating items.</string>
 </dict>
 </plist>
