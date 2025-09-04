@@ -25,20 +25,8 @@ struct AnalysisResult: Codable {
     let rawResponse: String?
     let note: String?
     let analysis: String?
-}
-
-struct CO2EstimationResponse: Codable {
-    let success: Bool
-    let result: CO2EstimationResult
-    let error: String?
-}
-
-struct CO2EstimationResult: Codable {
-    let co2Savings: Double
-    let unit: String
-    let confidence: Double?
-    let explanation: String?
-    let methodology: String?
+    let co2Savings: Double? // CO2 savings in kg from AI analysis
+    let co2Explanation: String? // AI explanation of CO2 calculation
 }
 
 // MARK: - Backend Service
@@ -191,47 +179,6 @@ class BackendService {
         }
     }
     
-    // MARK: - CO2 Estimation
-    func estimateCO2Savings(category: String, condition: String, title: String? = nil, description: String? = nil) async throws -> CO2EstimationResult {
-        let requestBody: [String: Any] = [
-            "category": category,
-            "condition": condition,
-            "title": title ?? "",
-            "description": description ?? "",
-            "task": "estimate_co2"
-        ]
-        
-        guard let url = URL(string: "\(baseURL)/estimate-co2") else {
-            throw BackendError.invalidURL
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        request.timeoutInterval = 15 // 15 second timeout for CO2 estimation
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw BackendError.networkError
-        }
-        
-        if httpResponse.statusCode != 200 {
-            if let errorResponse = try? JSONDecoder().decode(CO2EstimationResponse.self, from: data) {
-                throw BackendError.apiError(errorResponse.error ?? "Unknown error")
-            }
-            throw BackendError.serverError
-        }
-        
-        let co2Response = try JSONDecoder().decode(CO2EstimationResponse.self, from: data)
-        
-        if !co2Response.success {
-            throw BackendError.apiError(co2Response.error ?? "CO2 estimation failed")
-        }
-        
-        return co2Response.result
-    }
 }
 
 // MARK: - Error Types

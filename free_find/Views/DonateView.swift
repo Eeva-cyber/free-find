@@ -636,35 +636,14 @@ struct DonateView: View {
             return
         }
         
-        isEstimatingCO2 = true
-        
-        Task {
-            do {
-                // Try to get CO2 estimation from backend
-                let result = try await BackendService.shared.estimateCO2Savings(
-                    category: selectedCategory.rawValue,
-                    condition: selectedCondition.rawValue,
-                    title: title,
-                    description: description
-                )
-                
-                await MainActor.run {
-                    self.currentCO2Savings = result.co2Savings
-                    self.isEstimatingCO2 = false
-                }
-            } catch {
-                print("Backend CO2 estimation failed: \(error), using fallback")
-                // Fallback to local calculation
-                let fallbackSavings = CO2EstimationHelper.getLocalCO2Estimate(
-                    category: selectedCategory,
-                    condition: selectedCondition
-                )
-                
-                await MainActor.run {
-                    self.currentCO2Savings = fallbackSavings
-                    self.isEstimatingCO2 = false
-                }
-            }
+        // Only update if we don't have AI-provided CO2 data already
+        // (AI analysis will set the CO2 value when it runs)
+        if !aiSuggestionApplied {
+            // Use local calculation for real-time preview before AI analysis
+            currentCO2Savings = CO2EstimationHelper.getLocalCO2Estimate(
+                category: selectedCategory,
+                condition: selectedCondition
+            )
         }
     }
     
@@ -821,6 +800,23 @@ struct DonateView: View {
                 if let aiCondition = result.condition {
                     selectedCondition = BackendService.shared.mapConditionToItemCondition(aiCondition)
                     print("⭐ Set condition: \(aiCondition) -> \(selectedCondition)")
+                }
+                
+                // Extract CO2 data from AI analysis
+                if let aiCO2Savings = result.co2Savings {
+                    currentCO2Savings = aiCO2Savings
+                    print("🌱 AI estimated CO2 savings: \(aiCO2Savings) kg")
+                    
+                    if let explanation = result.co2Explanation {
+                        print("💡 CO2 explanation: \(explanation)")
+                    }
+                } else {
+                    // If AI didn't provide CO2 data, use our fallback calculation
+                    currentCO2Savings = CO2EstimationHelper.getLocalCO2Estimate(
+                        category: selectedCategory,
+                        condition: selectedCondition
+                    )
+                    print("🔄 Using fallback CO2 calculation: \(currentCO2Savings) kg")
                 }
                 
                 aiSuggestionApplied = true
