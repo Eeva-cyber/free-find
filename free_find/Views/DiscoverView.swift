@@ -24,7 +24,7 @@ struct DiscoverView: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
-                    .background(Color(.systemGray6))
+                    .background(Color(red: 0.95, green: 0.95, blue: 0.95))
                     .cornerRadius(10)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -106,6 +106,22 @@ struct DonationRowView: View {
                             .background(Color.green.opacity(0.1))
                             .foregroundColor(.green)
                             .cornerRadius(4)
+                        
+                        // CO2 Savings Badge
+                        if let co2Savings = donation.estimatedCO2Savings, co2Savings > 0 {
+                            HStack(spacing: 2) {
+                                Image(systemName: "leaf.fill")
+                                    .font(.caption2)
+                                Text(CO2EstimationHelper.formatCO2Savings(co2Savings))
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(red: 0.18, green: 0.49, blue: 0.20).opacity(0.1))
+                            .foregroundColor(Color(red: 0.18, green: 0.49, blue: 0.20))
+                            .cornerRadius(4)
+                        }
                     }
                 }
                 
@@ -162,7 +178,7 @@ struct CategoryButtonStyle: ButtonStyle {
             .font(.caption)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(isSelected ? Color.blue : Color(.systemGray6))
+            .background(isSelected ? Color.blue : Color(red: 0.95, green: 0.95, blue: 0.95))
             .foregroundColor(isSelected ? .white : .primary)
             .cornerRadius(8)
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)

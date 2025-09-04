@@ -49,6 +49,10 @@ struct HomeView: View {
                     // Main Content
                     ScrollView {
                         LazyVStack(spacing: 16) {
+                            // CO2 Impact Summary Card
+                            CO2ImpactCard()
+                                .environmentObject(donationStore)
+                            
                             ForEach(featuredCategories, id: \.category) { categoryInfo in
                                 CategoryCard(
                                     categoryInfo: categoryInfo,
@@ -96,6 +100,88 @@ struct HomeView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(Color(red: 0.98, green: 0.98, blue: 0.96))
+    }
+}
+
+// MARK: - CO2 Impact Card
+struct CO2ImpactCard: View {
+    @EnvironmentObject var donationStore: DonationStore
+    
+    private var totalCO2Saved: Double {
+        donationStore.donations.compactMap { $0.estimatedCO2Savings }.reduce(0, +)
+    }
+    
+    private var donationCount: Int {
+        donationStore.donations.count
+    }
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your Environmental Impact")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(Color(red: 0.12, green: 0.12, blue: 0.12))
+                    
+                    Text("Total CO2 saved through donations")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "leaf.fill")
+                    .font(.title2)
+                    .foregroundColor(Color(red: 0.18, green: 0.49, blue: 0.20))
+            }
+            
+            HStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(CO2EstimationHelper.formatCO2Savings(totalCO2Saved))
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color(red: 0.18, green: 0.49, blue: 0.20))
+                    
+                    Text("CO2 Saved")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Divider()
+                    .frame(height: 30)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(donationCount)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(Color(red: 0.18, green: 0.49, blue: 0.20))
+                    
+                    Text("Items Donated")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+            }
+            
+            if totalCO2Saved > 0 {
+                Text(CO2EstimationHelper.getCO2SavingsMessage(totalCO2Saved))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(red: 0.91, green: 0.96, blue: 0.91)) // Light green background
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color(red: 0.18, green: 0.49, blue: 0.20).opacity(0.2), lineWidth: 1)
+        )
     }
 }
 
@@ -293,9 +379,23 @@ struct ItemRowView: View {
                     .foregroundColor(.secondary)
                     .lineLimit(2)
                 
-                Text(item.location)
-                    .font(.caption2)
-                    .foregroundColor(.blue)
+                HStack {
+                    Text(item.location)
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                    
+                    // CO2 Savings Display
+                    if let co2Savings = item.estimatedCO2Savings, co2Savings > 0 {
+                        HStack(spacing: 2) {
+                            Image(systemName: "leaf.fill")
+                                .font(.caption2)
+                            Text(CO2EstimationHelper.formatCO2Savings(co2Savings))
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(Color(red: 0.18, green: 0.49, blue: 0.20))
+                    }
+                }
             }
             
             Spacer()
