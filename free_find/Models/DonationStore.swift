@@ -59,4 +59,18 @@ class DonationStore: ObservableObject {
     func availableDonations() -> [DonationItem] {
         return donations.filter { $0.status == .available }
     }
+    
+    // Helper to get user's own donations
+    var myDonations: [DonationItem] {
+        // For now, we'll consider all donations as user's own donations
+        // In a real app, this would filter by the current user's ID
+        return donations
+    }
+    
+    // Helper to calculate total CO2 saved
+    var totalCO2Saved: Double {
+        return donations.reduce(0) { total, donation in
+            total + (donation.estimatedCO2Savings ?? 0.0)
+        }
+    }
 }

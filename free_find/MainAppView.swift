@@ -11,6 +11,7 @@ struct MainAppView: View {
     @State private var showingLoadingView = !AppConfiguration.skipLoadingScreen
     @State private var showingWelcomeView = false
     @StateObject private var donationStore = DonationStore()
+    @StateObject private var authManager = AuthenticationManager()
     
     private var isFirstLaunch: Bool {
         !UserDefaults.standard.bool(forKey: AppConfiguration.UserDefaultsKeys.hasLaunchedBefore) && !AppConfiguration.skipWelcomeScreen
@@ -40,12 +41,19 @@ struct MainAppView: View {
                     removal: .move(edge: .trailing).combined(with: .opacity)
                 ))
             } else {
-                ContentView()
-                    .environmentObject(donationStore)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .opacity
-                    ))
+                if authManager.isLoggedIn {
+                    ContentView()
+                        .environmentObject(donationStore)
+                        .environmentObject(authManager)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                } else {
+                    LoginView()
+                        .environmentObject(authManager)
+                        .transition(.opacity)
+                }
             }
         }
         .onAppear {
