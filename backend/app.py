@@ -213,6 +213,173 @@ def analyze_text():
     except Exception as e:
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
+@app.route('/estimate-co2', methods=['POST'])
+def estimate_co2():
+    """
+    Estimate CO2 savings for a donated item using Gemini AI
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+        
+        category = data.get('category', '')
+        condition = data.get('condition', '')
+        title = data.get('title', '')
+        description = data.get('description', '')
+        
+        if not category or not condition:
+            return jsonify({"error": "Category and condition are required"}), 400
+        
+        # Create a comprehensive prompt for CO2 estimation
+        prompt = f"""
+You are an expert environmental analyst specializing in carbon footprint calculations and lifecycle assessments. 
+
+Please estimate the CO2 savings (in kilograms) when someone donates this item instead of throwing it away and someone else reuses it instead of buying new:
+
+Item Details:
+- Category: {category}
+- Condition: {condition}
+- Title: {title}
+- Description: {description}
+
+Consider these factors in your estimation:
+1. Manufacturing emissions avoided (someone reuses instead of buying new)
+2. Disposal emissions avoided (item doesn't go to landfill/incineration)
+3. Transportation savings (local reuse vs new manufacturing/shipping)
+4. Item condition impact on reuse potential
+
+Please provide:
+1. CO2 savings estimate in kilograms (be realistic and research-based)
+2. Brief explanation of your calculation methodology
+3. Confidence level (0-1)
+
+Respond in this exact JSON format:
+{{
+    "co2_savings": [number in kg],
+    "unit": "kg",
+    "confidence": [0-1],
+    "explanation": "[brief explanation]",
+    "methodology": "[calculation approach]"
+}}
+
+Base your estimates on real lifecycle assessment data for similar products. Be conservative but accurate.
+"""
+
+        if model is None:
+            # Fallback calculation if Gemini is unavailable
+            fallback_savings = calculate_fallback_co2(category, condition)
+            return jsonify({
+                "success": True,
+                "result": {
+                    "co2_savings": fallback_savings,
+                    "unit": "kg",
+                    "confidence": 0.7,
+                    "explanation": "Fallback calculation based on category averages",
+                    "methodology": "Local estimation using category-based averages"
+                }
+            })
+
+        # Generate CO2 estimation using Gemini
+        response = model.generate_content(prompt)
+        
+        if response and response.text:
+            try:
+                # Try to extract JSON from the response
+                import json
+                import re
+                
+                # Find JSON in the response
+                json_match = re.search(r'\{[^}]+\}', response.text)
+                if json_match:
+                    result_data = json.loads(json_match.group())
+                    
+                    # Validate the response structure
+                    if 'co2_savings' in result_data:
+                        return jsonify({
+                            "success": True,
+                            "result": result_data
+                        })
+                
+                # If JSON parsing fails, use fallback
+                fallback_savings = calculate_fallback_co2(category, condition)
+                return jsonify({
+                    "success": True,
+                    "result": {
+                        "co2_savings": fallback_savings,
+                        "unit": "kg",
+                        "confidence": 0.6,
+                        "explanation": f"AI response: {response.text[:100]}...",
+                        "methodology": "Gemini AI analysis with fallback calculation"
+                    }
+                })
+                
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                fallback_savings = calculate_fallback_co2(category, condition)
+                return jsonify({
+                    "success": True,
+                    "result": {
+                        "co2_savings": fallback_savings,
+                        "unit": "kg",
+                        "confidence": 0.6,
+                        "explanation": "AI analysis with fallback calculation",
+                        "methodology": "Gemini AI with local fallback"
+                    }
+                })
+        else:
+            # Fallback if no response from Gemini
+            fallback_savings = calculate_fallback_co2(category, condition)
+            return jsonify({
+                "success": True,
+                "result": {
+                    "co2_savings": fallback_savings,
+                    "unit": "kg",
+                    "confidence": 0.7,
+                    "explanation": "Fallback calculation used",
+                    "methodology": "Local estimation"
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": f"CO2 estimation error: {str(e)}"}), 500
+
+def calculate_fallback_co2(category, condition):
+    """
+    Fallback CO2 calculation based on category and condition
+    """
+    # Base CO2 footprints by category (kg CO2e)
+    category_footprints = {
+        'electronics': 150.0,
+        'furniture': 80.0,
+        'clothing': 25.0,
+        'kitchenware': 15.0,
+        'sports & outdoors': 20.0,
+        'toys': 10.0,
+        'books': 2.5,
+        'other': 15.0
+    }
+    
+    # Condition multipliers
+    condition_multipliers = {
+        'excellent': 1.0,
+        'good': 0.85,
+        'fair': 0.65,
+        'poor': 0.4
+    }
+    
+    # Get base footprint
+    base_co2 = category_footprints.get(category.lower(), 15.0)
+    
+    # Get condition multiplier
+    condition_mult = condition_multipliers.get(condition.lower(), 0.7)
+    
+    # Calculate savings (80% of production emissions avoided)
+    savings_percentage = 0.8
+    
+    return base_co2 * condition_mult * savings_percentage
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'

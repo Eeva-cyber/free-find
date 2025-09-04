@@ -24,6 +24,11 @@ struct DonateView: View {
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var loadedImages: [UIImage] = []
     @State private var showingSuccessAlert = false
+    @State private var co2SavingsMessage = ""
+    
+    // CO2 Estimation states
+    @State private var currentCO2Savings: Double = 0.0
+    @State private var isEstimatingCO2 = false
     
     // AI Analysis states
     @State private var isAnalyzing = false
@@ -103,7 +108,7 @@ struct DonateView: View {
                 clearForm()
             }
         } message: {
-            Text("Your item has been posted! Others can now discover and claim it.")
+            Text("Your item has been posted! Others can now discover and claim it.\n\n\(co2SavingsMessage)")
         }
         .alert("AI Analysis Error", isPresented: $showingAnalysisError) {
             Button("OK") { }
@@ -334,6 +339,60 @@ struct DonateView: View {
                         .background(inputBackground)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
+                    
+                    // CO2 Savings Preview
+                    if !title.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "leaf.fill")
+                                    .foregroundColor(.green)
+                                Text("Environmental Impact")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(textSecondary)
+                                
+                                if isEstimatingCO2 {
+                                    Spacer()
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                }
+                            }
+                            
+                            let formattedSavings = CO2EstimationHelper.formatCO2Savings(currentCO2Savings)
+                            
+                            Text("Estimated CO2 savings: \(formattedSavings)")
+                                .font(.system(size: 13))
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(Color.green.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .onAppear {
+                            updateCO2Estimation()
+                        }
+                        .onChange(of: selectedCategory) { oldCategory, newCategory in
+                            updateCO2Estimation()
+                        }
+                        .onChange(of: selectedCondition) { oldCondition, newCondition in
+                            updateCO2Estimation()
+                        }
+                        .onChange(of: title) { oldTitle, newTitle in
+                            // Update CO2 estimation when title changes (with debouncing)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                if title == newTitle { // Only update if title hasn't changed again
+                                    updateCO2Estimation()
+                                }
+                            }
+                        }
+                        .onChange(of: description) { oldDesc, newDesc in
+                            // Update CO2 estimation when description changes (with debouncing)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                if description == newDesc { // Only update if description hasn't changed again
+                                    updateCO2Estimation()
+                                }
+                            }
+                        }
+                    }
                 }
             }
             .padding(20)
@@ -548,7 +607,7 @@ struct DonateView: View {
     
     // MARK: - Form Submission
     private func postDonation() {
-        let donation = DonationItem(
+        var donation = DonationItem(
             title: title,
             description: description,
             category: selectedCategory,
@@ -560,8 +619,53 @@ struct DonateView: View {
             donorPhone: donorPhone
         )
         
+        // Set the CO2 savings from our current estimation (backend or fallback)
+        donation.estimatedCO2Savings = currentCO2Savings
+        
+        // Calculate CO2 savings message using the current value
+        co2SavingsMessage = CO2EstimationHelper.getCO2SavingsMessage(currentCO2Savings)
+        
         donationStore.addDonation(donation)
         showingSuccessAlert = true
+    }
+    
+    // MARK: - CO2 Estimation Functions
+    private func updateCO2Estimation() {
+        guard !title.isEmpty else {
+            currentCO2Savings = 0.0
+            return
+        }
+        
+        isEstimatingCO2 = true
+        
+        Task {
+            do {
+                // Try to get CO2 estimation from backend
+                let result = try await BackendService.shared.estimateCO2Savings(
+                    category: selectedCategory.rawValue,
+                    condition: selectedCondition.rawValue,
+                    title: title,
+                    description: description
+                )
+                
+                await MainActor.run {
+                    self.currentCO2Savings = result.co2Savings
+                    self.isEstimatingCO2 = false
+                }
+            } catch {
+                print("Backend CO2 estimation failed: \(error), using fallback")
+                // Fallback to local calculation
+                let fallbackSavings = CO2EstimationHelper.getLocalCO2Estimate(
+                    category: selectedCategory,
+                    condition: selectedCondition
+                )
+                
+                await MainActor.run {
+                    self.currentCO2Savings = fallbackSavings
+                    self.isEstimatingCO2 = false
+                }
+            }
+        }
     }
     
     // MARK: - Location Functions

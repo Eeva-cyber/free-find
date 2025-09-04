@@ -28,7 +28,7 @@ struct LoadingView: View {
                     
                     // "FF" Logo with animations
                     Text("FF")
-                        .e(.system(size: 72, weight: .bold, design: .rounded))
+                        .font(.system(size: 72, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.42, green: 0.24, blue: 0.07)) // #6B3C13
                         .scaleEffect(logoScale)
                         .opacity(logoOpacity)
