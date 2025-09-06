@@ -18,8 +18,10 @@ struct UserAccount: Codable, Identifiable {
     var totalCO2Saved: Double
     var location: String?
     var bio: String?
+    var homeAddress: String?
+    var suburb: String?
     
-    init(username: String, email: String, fullName: String, location: String? = nil, bio: String? = nil) {
+    init(username: String, email: String, fullName: String, location: String? = nil, bio: String? = nil, homeAddress: String? = nil, suburb: String? = nil) {
         self.id = UUID()
         self.username = username
         self.email = email
@@ -30,6 +32,8 @@ struct UserAccount: Codable, Identifiable {
         self.totalCO2Saved = 0.0
         self.location = location
         self.bio = bio
+        self.homeAddress = homeAddress
+        self.suburb = suburb
     }
 }
 
@@ -103,13 +107,15 @@ class AuthenticationManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: currentUserKey)
     }
     
-    func updateProfile(fullName: String, email: String, location: String?, bio: String?) {
+    func updateProfile(fullName: String, email: String, location: String?, bio: String?, homeAddress: String?, suburb: String?) {
         guard var user = currentUser else { return }
         
         user.fullName = fullName
         user.email = email
         user.location = location
         user.bio = bio
+        user.homeAddress = homeAddress
+        user.suburb = suburb
         
         currentUser = user
         saveCurrentUser()

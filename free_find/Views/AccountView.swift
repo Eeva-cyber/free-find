@@ -36,6 +36,7 @@ struct AccountView: View {
             .background(Color.gray.opacity(0.1))
             .sheet(isPresented: $showingEditProfile) {
                 EditProfileView()
+                    .environmentObject(authManager)
             }
         }
     }
@@ -76,6 +77,28 @@ struct ProfileHeaderView: View {
                         Image(systemName: "location")
                             .foregroundColor(.secondary)
                         Text(location)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Home Address
+                if let homeAddress = authManager.currentUser?.homeAddress {
+                    HStack {
+                        Image(systemName: "house")
+                            .foregroundColor(.secondary)
+                        Text(homeAddress)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Suburb
+                if let suburb = authManager.currentUser?.suburb {
+                    HStack {
+                        Image(systemName: "building.2")
+                            .foregroundColor(.secondary)
+                        Text(suburb)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

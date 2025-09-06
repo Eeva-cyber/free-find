@@ -15,6 +15,8 @@ struct EditProfileView: View {
     @State private var email: String = ""
     @State private var location: String = ""
     @State private var bio: String = ""
+    @State private var homeAddress: String = ""
+    @State private var suburb: String = ""
     @State private var showingAlert = false
     @State private var alertMessage = ""
     
@@ -31,6 +33,11 @@ struct EditProfileView: View {
                     TextField("Location", text: $location)
                     TextField("Bio", text: $bio, axis: .vertical)
                         .lineLimit(3...6)
+                }
+                
+                Section(header: Text("Address Information")) {
+                    TextField("Home Address", text: $homeAddress)
+                    TextField("Suburb", text: $suburb)
                 }
                 
                 Section {
@@ -73,6 +80,8 @@ struct EditProfileView: View {
         email = user.email
         location = user.location ?? ""
         bio = user.bio ?? ""
+        homeAddress = user.homeAddress ?? ""
+        suburb = user.suburb ?? ""
     }
     
     private func saveProfile() {
@@ -80,7 +89,9 @@ struct EditProfileView: View {
             fullName: fullName,
             email: email,
             location: location.isEmpty ? nil : location,
-            bio: bio.isEmpty ? nil : bio
+            bio: bio.isEmpty ? nil : bio,
+            homeAddress: homeAddress.isEmpty ? nil : homeAddress,
+            suburb: suburb.isEmpty ? nil : suburb
         )
         
         alertMessage = "Your profile has been updated successfully!"
