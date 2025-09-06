@@ -10,6 +10,9 @@ import Foundation
 class DonationStore: ObservableObject {
     @Published var donations: [DonationItem] = []
     
+    // Reference to auth manager for updating user stats
+    weak var authManager: AuthenticationManager?
+    
     private let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     private var donationsFile: URL {
         documentsPath.appendingPathComponent("donations.json")
@@ -19,21 +22,33 @@ class DonationStore: ObservableObject {
         loadDonations()
     }
     
+    func setAuthManager(_ authManager: AuthenticationManager) {
+        self.authManager = authManager
+    }
+    
     func addDonation(_ donation: DonationItem) {
         donations.append(donation)
         saveDonations()
+        updateUserStats()
     }
     
     func updateDonation(_ donation: DonationItem) {
         if let index = donations.firstIndex(where: { $0.id == donation.id }) {
             donations[index] = donation
             saveDonations()
+            updateUserStats()
         }
     }
     
     func deleteDonation(_ donation: DonationItem) {
         donations.removeAll { $0.id == donation.id }
         saveDonations()
+        updateUserStats()
+    }
+    
+    private func updateUserStats() {
+        // Update user stats in AuthenticationManager
+        authManager?.updateUserStats(donationsCount: myDonations.count, co2Saved: totalCO2Saved)
     }
     
     private func saveDonations() {

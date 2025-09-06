@@ -7,6 +7,74 @@
 
 import Foundation
 
+// MARK: - Loyalty System Models
+enum LoyaltyTier: String, Codable, CaseIterable {
+    case newbie = "Newbie"
+    case helper = "Helper"
+    case guardian = "Guardian"
+    case champion = "Champion"
+    case legend = "Legend"
+    
+    var donationsRequired: Int {
+        switch self {
+        case .newbie: return 0
+        case .helper: return 5
+        case .guardian: return 15
+        case .champion: return 30
+        case .legend: return 50
+        }
+    }
+    
+    var color: String {
+        switch self {
+        case .newbie: return "gray"
+        case .helper: return "blue"
+        case .guardian: return "green"
+        case .champion: return "orange"
+        case .legend: return "purple"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .newbie: return "leaf"
+        case .helper: return "heart"
+        case .guardian: return "shield"
+        case .champion: return "star"
+        case .legend: return "crown"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .newbie: return "Welcome to the community!"
+        case .helper: return "You're making a difference!"
+        case .guardian: return "Protecting our environment!"
+        case .champion: return "Leading by example!"
+        case .legend: return "An inspiration to all!"
+        }
+    }
+}
+
+struct LoyaltyReward: Codable, Identifiable {
+    let id: String
+    let title: String
+    let description: String
+    let donationsRequired: Int
+    let pointsRequired: Int
+    let tier: LoyaltyTier
+    let icon: String
+    let rewardType: RewardType
+    let isSpecial: Bool
+    
+    enum RewardType: String, Codable {
+        case badge = "badge"
+        case title = "title"
+        case feature = "feature"
+        case discount = "discount"
+    }
+}
+
 struct UserAccount: Codable, Identifiable {
     let id: UUID
     var username: String
@@ -21,6 +89,11 @@ struct UserAccount: Codable, Identifiable {
     var homeAddress: String?
     var suburb: String?
     
+    // Loyalty System Properties
+    var loyaltyPoints: Int
+    var currentTier: LoyaltyTier
+    var claimedRewards: [String] // Array of claimed reward IDs
+    
     init(username: String, email: String, fullName: String, location: String? = nil, bio: String? = nil, homeAddress: String? = nil, suburb: String? = nil) {
         self.id = UUID()
         self.username = username
@@ -34,6 +107,11 @@ struct UserAccount: Codable, Identifiable {
         self.bio = bio
         self.homeAddress = homeAddress
         self.suburb = suburb
+        
+        // Initialize loyalty system properties
+        self.loyaltyPoints = 0
+        self.currentTier = .newbie
+        self.claimedRewards = []
     }
 }
 
@@ -129,6 +207,10 @@ class AuthenticationManager: ObservableObject {
         user.totalDonations = donationsCount
         user.totalCO2Saved = co2Saved
         
+        // Update loyalty system
+        user.loyaltyPoints = LoyaltySystem().calculatePoints(for: donationsCount)
+        user.currentTier = LoyaltySystem().calculateTier(for: donationsCount)
+        
         currentUser = user
         saveCurrentUser()
         updateSavedAccount(user)
@@ -191,6 +273,25 @@ class AuthenticationManager: ObservableObject {
         currentUser = user
         isLoggedIn = true
     }
+    
+    // MARK: - Development Helper
+    func addSampleDonationsForTesting() {
+        // This is for testing the loyalty system
+        guard var user = currentUser else { return }
+        
+        // Simulate having made some donations for testing
+        let sampleDonationsCount = 12 // This should put user at "Guardian" tier
+        user.totalDonations = sampleDonationsCount
+        user.totalCO2Saved = Double(sampleDonationsCount) * 2.5 // Sample CO2 savings
+        
+        // Update loyalty system
+        user.loyaltyPoints = LoyaltySystem().calculatePoints(for: sampleDonationsCount)
+        user.currentTier = LoyaltySystem().calculateTier(for: sampleDonationsCount)
+        
+        currentUser = user
+        saveCurrentUser()
+        updateSavedAccount(user)
+    }
 }
 
 // MARK: - Authentication Errors
@@ -211,5 +312,176 @@ enum AuthError: LocalizedError {
         case .networkError:
             return "Network connection failed"
         }
+    }
+}
+
+// MARK: - Loyalty System Manager
+class LoyaltySystem: ObservableObject {
+    @Published var availableRewards: [LoyaltyReward] = []
+    
+    init() {
+        setupRewards()
+    }
+    
+    private func setupRewards() {
+        availableRewards = [
+            // Helper Tier Rewards (5 donations)
+            LoyaltyReward(
+                id: "helper_badge",
+                title: "Helper Badge",
+                description: "Your first milestone! Thanks for helping the community.",
+                donationsRequired: 5,
+                pointsRequired: 50,
+                tier: .helper,
+                icon: "heart.fill",
+                rewardType: .badge,
+                isSpecial: false
+            ),
+            LoyaltyReward(
+                id: "early_access",
+                title: "Early Access Features",
+                description: "Get early access to new app features and updates.",
+                donationsRequired: 5,
+                pointsRequired: 50,
+                tier: .helper,
+                icon: "star.circle.fill",
+                rewardType: .feature,
+                isSpecial: true
+            ),
+            
+            // Guardian Tier Rewards (15 donations)
+            LoyaltyReward(
+                id: "guardian_badge",
+                title: "Guardian Badge",
+                description: "You're a true guardian of sustainability!",
+                donationsRequired: 15,
+                pointsRequired: 150,
+                tier: .guardian,
+                icon: "shield.fill",
+                rewardType: .badge,
+                isSpecial: false
+            ),
+            LoyaltyReward(
+                id: "priority_notifications",
+                title: "Priority Notifications",
+                description: "Get notified first about new items in your area.",
+                donationsRequired: 15,
+                pointsRequired: 150,
+                tier: .guardian,
+                icon: "bell.badge.fill",
+                rewardType: .feature,
+                isSpecial: true
+            ),
+            
+            // Champion Tier Rewards (30 donations)
+            LoyaltyReward(
+                id: "champion_badge",
+                title: "Champion Badge",
+                description: "You're a champion of the environment!",
+                donationsRequired: 30,
+                pointsRequired: 300,
+                tier: .champion,
+                icon: "star.fill",
+                rewardType: .badge,
+                isSpecial: false
+            ),
+            LoyaltyReward(
+                id: "custom_profile",
+                title: "Custom Profile Theme",
+                description: "Unlock special profile themes and customizations.",
+                donationsRequired: 30,
+                pointsRequired: 300,
+                tier: .champion,
+                icon: "paintbrush.fill",
+                rewardType: .feature,
+                isSpecial: true
+            ),
+            
+            // Legend Tier Rewards (50 donations)
+            LoyaltyReward(
+                id: "legend_badge",
+                title: "Legend Badge",
+                description: "You're a legend! An inspiration to everyone.",
+                donationsRequired: 50,
+                pointsRequired: 500,
+                tier: .legend,
+                icon: "crown.fill",
+                rewardType: .badge,
+                isSpecial: false
+            ),
+            LoyaltyReward(
+                id: "legend_title",
+                title: "Legend Title",
+                description: "Display 'Legend' title on your profile.",
+                donationsRequired: 50,
+                pointsRequired: 500,
+                tier: .legend,
+                icon: "crown.fill",
+                rewardType: .title,
+                isSpecial: true
+            ),
+            LoyaltyReward(
+                id: "moderator_features",
+                title: "Community Moderator",
+                description: "Help moderate the community and review donations.",
+                donationsRequired: 50,
+                pointsRequired: 500,
+                tier: .legend,
+                icon: "person.badge.shield.checkmark.fill",
+                rewardType: .feature,
+                isSpecial: true
+            )
+        ]
+    }
+    
+    func calculateTier(for donationCount: Int) -> LoyaltyTier {
+        let sortedTiers = LoyaltyTier.allCases.sorted { $0.donationsRequired > $1.donationsRequired }
+        return sortedTiers.first { donationCount >= $0.donationsRequired } ?? .newbie
+    }
+    
+    func calculatePoints(for donationCount: Int) -> Int {
+        return donationCount * 10 // 10 points per donation
+    }
+    
+    func getProgressToNextTier(currentDonations: Int) -> (nextTier: LoyaltyTier?, donationsNeeded: Int, progress: Double) {
+        let currentTier = calculateTier(for: currentDonations)
+        let allTiers = LoyaltyTier.allCases.sorted { $0.donationsRequired < $1.donationsRequired }
+        
+        guard let currentIndex = allTiers.firstIndex(of: currentTier),
+              currentIndex < allTiers.count - 1 else {
+            return (nil, 0, 1.0) // Already at max tier
+        }
+        
+        let nextTier = allTiers[currentIndex + 1]
+        let donationsNeeded = nextTier.donationsRequired - currentDonations
+        let progress = Double(currentDonations) / Double(nextTier.donationsRequired)
+        
+        return (nextTier, donationsNeeded, progress)
+    }
+    
+    func getAvailableRewards(for user: UserAccount) -> [LoyaltyReward] {
+        return availableRewards.filter { reward in
+            user.totalDonations >= reward.donationsRequired &&
+            user.loyaltyPoints >= reward.pointsRequired &&
+            !user.claimedRewards.contains(reward.id)
+        }
+    }
+    
+    func getClaimedRewards(for user: UserAccount) -> [LoyaltyReward] {
+        return availableRewards.filter { reward in
+            user.claimedRewards.contains(reward.id)
+        }
+    }
+    
+    func claimReward(_ reward: LoyaltyReward, for user: inout UserAccount) -> Bool {
+        guard user.totalDonations >= reward.donationsRequired,
+              user.loyaltyPoints >= reward.pointsRequired,
+              !user.claimedRewards.contains(reward.id) else {
+            return false
+        }
+        
+        user.claimedRewards.append(reward.id)
+        user.loyaltyPoints -= reward.pointsRequired
+        return true
     }
 }

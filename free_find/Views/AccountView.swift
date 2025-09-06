@@ -10,7 +10,9 @@ import SwiftUI
 struct AccountView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var donationStore: DonationStore
+    @StateObject private var loyaltySystem = LoyaltySystem()
     @State private var showingEditProfile = false
+    @State private var showingLoyaltyView = false
     
     var body: some View {
         NavigationView {
@@ -19,11 +21,14 @@ struct AccountView: View {
                     // Profile Header
                     ProfileHeaderView()
                     
+                    // Loyalty Tier Card
+                    LoyaltyTierCard()
+                    
                     // Stats Cards
                     StatsCardsView()
                     
                     // Profile Actions
-                    ProfileActionsView(showingEditProfile: $showingEditProfile)
+                    ProfileActionsView(showingEditProfile: $showingEditProfile, showingLoyaltyView: $showingLoyaltyView)
                     
                     // Account Settings
                     AccountSettingsView()
@@ -34,9 +39,15 @@ struct AccountView: View {
             }
             .navigationTitle("Account")
             .background(Color.gray.opacity(0.1))
+            .environmentObject(loyaltySystem)
             .sheet(isPresented: $showingEditProfile) {
                 EditProfileView()
                     .environmentObject(authManager)
+            }
+            .sheet(isPresented: $showingLoyaltyView) {
+                LoyaltyView()
+                    .environmentObject(authManager)
+                    .environmentObject(donationStore)
             }
         }
     }
@@ -118,6 +129,134 @@ struct ProfileHeaderView: View {
         .background(Color.white)
         .cornerRadius(15)
         .shadow(radius: 2)
+    }
+}
+
+struct LoyaltyTierCard: View {
+    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var donationStore: DonationStore
+    @EnvironmentObject var loyaltySystem: LoyaltySystem
+    
+    private var currentTier: LoyaltyTier {
+        loyaltySystem.calculateTier(for: donationStore.myDonations.count)
+    }
+    
+    private var tierColor: Color {
+        switch currentTier.color {
+        case "blue": return .blue
+        case "green": return .green
+        case "orange": return .orange
+        case "purple": return .purple
+        default: return .gray
+        }
+    }
+    
+    private var progressInfo: (nextTier: LoyaltyTier?, donationsNeeded: Int, progress: Double) {
+        loyaltySystem.getProgressToNextTier(currentDonations: donationStore.myDonations.count)
+    }
+    
+    private var availableRewardsCount: Int {
+        guard let user = authManager.currentUser else { return 0 }
+        return loyaltySystem.getAvailableRewards(for: user).count
+    }
+    
+    var body: some View {
+        VStack(spacing: 15) {
+            HStack {
+                Text("Loyalty Status")
+                    .font(.headline)
+                
+                Spacer()
+                
+                if availableRewardsCount > 0 {
+                    Text("\(availableRewardsCount) rewards")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+            }
+            
+            VStack(spacing: 15) {
+                // Current Tier Info
+                HStack(spacing: 15) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(
+                                gradient: Gradient(colors: [tierColor.opacity(0.3), tierColor]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: currentTier.icon)
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(currentTier.rawValue)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(tierColor)
+                        
+                        if let user = authManager.currentUser {
+                            HStack {
+                                Image(systemName: "star.fill")
+                                    .foregroundColor(.yellow)
+                                Text("\(user.loyaltyPoints) points")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        
+                        Text("\(donationStore.myDonations.count) donations")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                }
+                
+                // Progress to Next Tier
+                if let nextTier = progressInfo.nextTier {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Next: \(nextTier.rawValue)")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            
+                            Spacer()
+                            
+                            Text("\(progressInfo.donationsNeeded) more")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 4)
+                                    .cornerRadius(2)
+                                
+                                Rectangle()
+                                    .fill(tierColor)
+                                    .frame(width: geometry.size.width * progressInfo.progress, height: 4)
+                                    .cornerRadius(2)
+                            }
+                        }
+                        .frame(height: 4)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.white)
+            .cornerRadius(12)
+            .shadow(radius: 2)
+        }
     }
 }
 
@@ -204,6 +343,7 @@ struct StatCard: View {
 
 struct ProfileActionsView: View {
     @Binding var showingEditProfile: Bool
+    @Binding var showingLoyaltyView: Bool
     
     var body: some View {
         VStack(spacing: 10) {
@@ -216,6 +356,15 @@ struct ProfileActionsView: View {
                     icon: "person.circle",
                     title: "Edit Profile",
                     action: { showingEditProfile = true }
+                )
+                
+                Divider()
+                    .padding(.leading, 50)
+                
+                ActionRow(
+                    icon: "star.circle",
+                    title: "Loyalty Rewards",
+                    action: { showingLoyaltyView = true }
                 )
                 
                 Divider()
@@ -235,6 +384,20 @@ struct ProfileActionsView: View {
                     title: "Saved Items",
                     action: { }
                 )
+                
+                // Development testing button - remove in production
+                if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+                    Divider()
+                        .padding(.leading, 50)
+                    
+                    ActionRow(
+                        icon: "hammer.circle",
+                        title: "Add Test Donations (Dev)",
+                        action: { 
+                            // This will only work in development builds
+                        }
+                    )
+                }
             }
             .background(Color.white)
             .cornerRadius(12)

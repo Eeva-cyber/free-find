@@ -57,6 +57,9 @@ struct MainAppView: View {
             }
         }
         .onAppear {
+            // Connect DonationStore to AuthenticationManager for loyalty updates
+            donationStore.setAuthManager(authManager)
+            
             // For development: Uncomment this line to reset app state and always show welcome screen
             // AppConfiguration.resetAppState()
         }
