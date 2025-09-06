@@ -619,11 +619,18 @@ struct DonateView: View {
             donorPhone: donorPhone
         )
         
+        // Save photos to disk and store filenames
+        if !loadedImages.isEmpty {
+            let savedPhotoFilenames = PhotoStorageService.shared.savePhotos(loadedImages, for: donation.id)
+            donation.photos = savedPhotoFilenames
+            print("📷 Saved \(savedPhotoFilenames.count) photos for donation: \(donation.title)")
+        }
+        
         // Set the CO2 savings from our current estimation (backend or fallback)
         donation.estimatedCO2Savings = currentCO2Savings
         
         // Calculate CO2 savings message using the current value
-        co2SavingsMessage = CO2EstimationHelper.getCO2SavingsMessage(currentCO2Savings)
+        co2SavingsMessage = CO2EstimationService.getCO2SavingsMessage(currentCO2Savings)
         
         donationStore.addDonation(donation)
         showingSuccessAlert = true

@@ -360,14 +360,18 @@ struct ItemRowView: View {
     
     var body: some View {
         HStack {
-            // Placeholder image
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.2))
-                .frame(width: 60, height: 60)
-                .overlay(
-                    Image(systemName: "photo")
-                        .foregroundColor(.gray)
-                )
+            // Display actual photos or placeholder
+            if !item.photos.isEmpty {
+                PhotoDisplayView(photoFilenames: item.photos, maxDisplayCount: 1)
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.gray)
+                    )
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)

@@ -20,10 +20,15 @@ class DonationStore: ObservableObject {
     
     init() {
         loadDonations()
+        cleanupOrphanedPhotos()
     }
     
     func setAuthManager(_ authManager: AuthenticationManager) {
         self.authManager = authManager
+    }
+    
+    func cleanupOrphanedPhotos() {
+        PhotoStorageService.shared.cleanupOrphanedPhotos(existingDonations: donations)
     }
     
     func addDonation(_ donation: DonationItem) {
@@ -41,6 +46,11 @@ class DonationStore: ObservableObject {
     }
     
     func deleteDonation(_ donation: DonationItem) {
+        // Clean up photos before removing donation
+        if !donation.photos.isEmpty {
+            PhotoStorageService.shared.deletePhotos(filenames: donation.photos)
+        }
+        
         donations.removeAll { $0.id == donation.id }
         saveDonations()
         updateUserStats()

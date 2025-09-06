@@ -298,8 +298,8 @@ struct DiscoverItemCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header with title and claim button
-            HStack {
+            // Header with title and photos
+            HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(donation.title)
                         .font(.system(size: 18, weight: .bold))
@@ -313,6 +313,11 @@ struct DiscoverItemCard: View {
                 }
                 
                 Spacer()
+                
+                // Display photos
+                if !donation.photos.isEmpty {
+                    TappablePhotoDisplay(photoFilenames: donation.photos, maxDisplayCount: 1)
+                }
                 
                 Button(action: {
                     // Handle claim action

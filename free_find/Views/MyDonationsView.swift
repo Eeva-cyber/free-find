@@ -352,6 +352,11 @@ struct MyDonationItemCard: View {
                 
                 Spacer()
                 
+                // Display photos
+                if !donation.photos.isEmpty {
+                    TappablePhotoDisplay(photoFilenames: donation.photos, maxDisplayCount: 1)
+                }
+                
                 VStack(alignment: .trailing, spacing: 8) {
                     StatusBadge(status: donation.status)
                     
